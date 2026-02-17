@@ -1,0 +1,109 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FakeTradePanel"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 300, 0, 220)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -110)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local function createButton(text, posY)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 280, 0, 40)
+	btn.Position = UDim2.new(0, 10, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.BorderSizePixel = 0
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 22
+	btn.Text = text
+	btn.Parent = Frame
+	return btn
+end
+
+local BlockButton = createButton("Block User", 10)
+local StartTradeButton = createButton("Start Trade", 60)
+local AddPetButton = createButton("Add Pet to Trade", 110)
+local AcceptOtherUserButton = createButton("Accept Other User", 160)
+
+-- Fake trade state
+local tradeActive = false
+local fakeOtherUserAccepted = false
+local addedPets = {}
+
+-- Fake pets list (example pets)
+local fakePets = {
+	"Shadow Dragon",
+	"Frost Dragon",
+	"Golden Unicorn",
+	"Neon Dog",
+	"Bat Dragon"
+}
+
+-- Function to simulate adding a pet to trade
+local function addPetToTrade()
+	if not tradeActive then return end
+	if #addedPets >= 5 then return end -- max 5 pets for example
+	local pet = fakePets[math.random(1, #fakePets)]
+	table.insert(addedPets, pet)
+	print("Added pet to trade:", pet)
+end
+
+-- Function to simulate accepting other user side
+local function acceptOtherUser()
+	if not tradeActive then return end
+	fakeOtherUserAccepted = true
+	print("Fake other user accepted the trade.")
+end
+
+-- Function to start fake trade
+local function startTrade()
+	if tradeActive then return end
+	tradeActive = true
+	fakeOtherUserAccepted = false
+	addedPets = {}
+	print("Fake trade started.")
+end
+
+-- Function to block real user (simulate by kicking or message)
+local function blockUser()
+	-- This will kick the player from the game as a block simulation
+	LocalPlayer:Kick("You have been blocked by the fake trade system.")
+end
+
+-- Connect buttons
+BlockButton.MouseButton1Click:Connect(blockUser)
+StartTradeButton.MouseButton1Click:Connect(startTrade)
+AddPetButton.MouseButton1Click:Connect(addPetToTrade)
+AcceptOtherUserButton.MouseButton1Click:Connect(acceptOtherUser)
+
+-- Display trade status on UI
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0, 280, 0, 40)
+StatusLabel.Position = UDim2.new(0, 10, 0, 210)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextColor3 = Color3.new(1, 1, 1)
+StatusLabel.Font = Enum.Font.SourceSansBold
+StatusLabel.TextSize = 18
+StatusLabel.Text = "Trade inactive"
+StatusLabel.Parent = Frame
+
+-- Update loop for UI status
+RunService.RenderStepped:Connect(function()
+	if tradeActive then
+		local petsText = #addedPets > 0 and table.concat(addedPets, ", ") or "No pets added"
+		local otherUserStatus = fakeOtherUserAccepted and "Accepted" or "Not accepted"
+		StatusLabel.Text = "Trade active\nPets: "..petsText.."\nOther user: "..otherUserStatus
+	else
+		StatusLabel.Text = "Trade inactive"
+	end
+end)
