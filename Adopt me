@@ -1,0 +1,234 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FakeTradeGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- UIListLayout for buttons
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = mainFrame
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
+layout.Padding = UDim.new(0, 15)
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -20, 0, 40)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Fake Trade Panel"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 24
+titleLabel.Parent = mainFrame
+titleLabel.LayoutOrder = 0
+
+-- Variables for fake trade
+local tradeActive = false
+local fakeOtherUserAccepted = false
+local blocked = false
+
+local fakeOtherUserPets = {}
+local playerTradePets = {}
+
+-- Helper function to create buttons
+local function createButton(text)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 260, 0, 50)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 20
+    btn.Text = text
+    btn.AutoButtonColor = true
+    btn.Parent = mainFrame
+    return btn
+end
+
+-- Info Label
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, -20, 0, 60)
+infoLabel.BackgroundTransparency = 1
+infoLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.TextSize = 16
+infoLabel.TextWrapped = true
+infoLabel.Text = "Status: Idle"
+infoLabel.Parent = mainFrame
+infoLabel.LayoutOrder = 1
+
+-- Buttons
+local startTradeBtn = createButton("Start Trade")
+startTradeBtn.LayoutOrder = 2
+
+local addPetBtn = createButton("Add Pet to Trade")
+addPetBtn.LayoutOrder = 3
+
+local acceptOtherUserBtn = createButton("Accept Other User")
+acceptOtherUserBtn.LayoutOrder = 4
+
+local acceptTradeBtn = createButton("Accept Trade")
+acceptTradeBtn.LayoutOrder = 5
+
+local blockBtn = createButton("Block User")
+blockBtn.LayoutOrder = 6
+
+local resetBtn = createButton("Reset Trade")
+resetBtn.LayoutOrder = 7
+
+-- Fake pets database (example pets)
+local availableFakePets = {
+    {Name = "Shadow Dragon", ID = 1},
+    {Name = "Golden Unicorn", ID = 2},
+    {Name = "Frost Fury", ID = 3},
+    {Name = "Neon Cat", ID = 4},
+    {Name = "Rainbow Dog", ID = 5},
+}
+
+-- Function to update info label
+local function updateInfo()
+    if blocked then
+        infoLabel.Text = "Status: You have blocked the user."
+        return
+    end
+    if not tradeActive then
+        infoLabel.Text = "Status: Idle"
+        return
+    end
+    local playerPetsStr = #playerTradePets > 0 and table.concat(playerTradePets, ", ") or "No pets"
+    local otherPetsStr = #fakeOtherUserPets > 0 and table.concat(fakeOtherUserPets, ", ") or "No pets"
+    local otherAcceptedStr = fakeOtherUserAccepted and "Yes" or "No"
+    infoLabel.Text = ("Status: Trading\nYour Pets: %s\nOther User Pets: %s\nOther User Accepted: %s"):format(playerPetsStr, otherPetsStr, otherAcceptedStr)
+end
+
+-- Function to simulate other user adding pets randomly
+local function fakeOtherUserAddPet()
+    if #fakeOtherUserPets >= 3 then return end -- max 3 pets
+    local pet = availableFakePets[math.random(1, #availableFakePets)]
+    if not table.find(fakeOtherUserPets, pet.Name) then
+        table.insert(fakeOtherUserPets, pet.Name)
+        updateInfo()
+    end
+end
+
+-- Function to simulate other user accepting trade
+local function fakeOtherUserAccept()
+    fakeOtherUserAccepted = true
+    updateInfo()
+end
+
+-- Button connections
+startTradeBtn.MouseButton1Click:Connect(function()
+    if blocked then
+        updateInfo()
+        return
+    end
+    if tradeActive then
+        infoLabel.Text = "Trade already active."
+        return
+    end
+    tradeActive = true
+    fakeOtherUserAccepted = false
+    fakeOtherUserPets = {}
+    playerTradePets = {}
+    updateInfo()
+    -- Simulate other user adding pets after short delay
+    delay(2, function()
+        if tradeActive and not blocked then
+            fakeOtherUserAddPet()
+        end
+    end)
+end)
+
+addPetBtn.MouseButton1Click:Connect(function()
+    if not tradeActive then
+        infoLabel.Text = "Start a trade first."
+        return
+    end
+    if #playerTradePets >= 3 then
+        infoLabel.Text = "You can add up to 3 pets only."
+        return
+    end
+    -- For demo, add a random pet from availableFakePets that player doesn't have in trade yet
+    local pet
+    for _, p in ipairs(availableFakePets) do
+        if not table.find(playerTradePets, p.Name) then
+            pet = p
+            break
+        end
+    end
+    if pet then
+        table.insert(playerTradePets, pet.Name)
+        updateInfo()
+    else
+        infoLabel.Text = "No more pets to add."
+    end
+end)
+
+acceptOtherUserBtn.MouseButton1Click:Connect(function()
+    if not tradeActive then
+        infoLabel.Text = "Start a trade first."
+        return
+    end
+    if blocked then
+        updateInfo()
+        return
+    end
+    fakeOtherUserAccept()
+end)
+
+acceptTradeBtn.MouseButton1Click:Connect(function()
+    if not tradeActive then
+        infoLabel.Text = "Start a trade first."
+        return
+    end
+    if blocked then
+        updateInfo()
+        return
+    end
+    if not fakeOtherUserAccepted then
+        infoLabel.Text = "Other user has not accepted yet."
+        return
+    end
+    infoLabel.Text = "Trade accepted! (Fake trade complete)"
+    tradeActive = false
+    fakeOtherUserAccepted = false
+    fakeOtherUserPets = {}
+    playerTradePets = {}
+end)
+
+blockBtn.MouseButton1Click:Connect(function()
+    blocked = true
+    tradeActive = false
+    fakeOtherUserAccepted = false
+    fakeOtherUserPets = {}
+    playerTradePets = {}
+    updateInfo()
+end)
+
+resetBtn.MouseButton1Click:Connect(function()
+    blocked = false
+    tradeActive = false
+    fakeOtherUserAccepted = false
+    fakeOtherUserPets = {}
+    playerTradePets = {}
+    updateInfo()
+end)
+
+updateInfo()
